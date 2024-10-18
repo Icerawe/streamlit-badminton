@@ -52,7 +52,8 @@ def mapping_team(df, team, sheet_name):
     # Correct the column names for merging
     _a = pd.merge(df[['team_a', 'group_code']], team, left_on=["group_code", "team_a"], right_on=["group_code", "team"], how="left")
     _b = pd.merge(df[['team_b', 'group_code']], team, left_on=["group_code", "team_b"], right_on=["group_code", "team"], how="left")
-
+    _a['name'] = _a['name'] + " (" + _a['team'] + ")"
+    _b['name'] = _b['name'] + " (" + _b['team'] + ")"
     df['name_a'] = _a['name']
     df['name_b'] = _b['name']
     return df

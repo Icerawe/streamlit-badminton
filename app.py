@@ -64,74 +64,99 @@ def visualize(df):
     df['score_b_1'] = df['score_1'].str.split('-').str[1]
     df['score_a_2'] = df['score_2'].str.split('-').str[0]
     df['score_b_2'] = df['score_2'].str.split('-').str[1]
-
+    df['point_a'] = df['point'].str.split('-').str[0]
+    df['point_b'] = df['point'].str.split('-').str[1]
     df = df.replace("", 0)
 
     # astype
     df = df.astype({
+        'point_a': float,
+        'point_b': float,
         'score_a_1': float,
         'score_b_1': float,
         'score_a_2': float,
         'score_b_2': float,
     })
-    # group by each team and calculate the total score
-    total_a = df.groupby(['name_a']).agg({
-        'score_a_1': 'sum',
-        'score_a_2': 'sum'
+
+    df['gd_a'] = (df['score_a_1'] + df['score_a_2']) - (df['score_b_1'] + df['score_b_2'])
+    df['gd_b'] = (df['score_b_1'] + df['score_b_2']) - (df['score_a_1'] + df['score_a_2'])
+
+    gd_a = df.groupby(['name_a']).agg({
+        'gd_a': 'sum'
     })
-    total_a['total'] = total_a['score_a_1'] + total_a['score_a_2']
+    gd_a['team'] = gd_a.index
 
-    total_b = df.groupby(['name_b']).agg({
-        'score_b_1': 'sum',
-        'score_b_2': 'sum'
+    gd_b = df.groupby(['name_b']).agg({
+        'gd_b': 'sum'
     })
-    total_b['total'] = total_b['score_b_1'] + total_b['score_b_2']
+    gd_b['team'] = gd_b.index
 
-    total = pd.concat([total_a, total_b])
-    total['name'] = total.index
+    df_gd = pd.merge(gd_a, gd_b, how='outer').fillna(0)
+    df_gd['gd'] = df_gd['gd_a']+df_gd['gd_b']
 
-    total = total.groupby('name').agg({
-        'total': 'sum'
+    point_a = df.groupby(['name_a']).agg({
+        'point_a': 'sum'
     })
-    total = total.sort_values(by='total', ascending=False)
+    point_a['team'] = point_a.index
+    point_b = df.groupby(['name_b']).agg({
+        'point_b': 'sum'
+    })
+    point_b['team'] = point_b.index
+    df_point = pd.merge(point_a, point_b, how='outer').fillna(0)
+    df_point['point'] = df_point['point_a']+df_point['point_b']
 
-    # Create a bar chart with customized aesthetics
-    fig = px.bar(
-        total,
-        x=total.index,
-        y='total',
-        color='total',
-        color_continuous_scale=px.colors.sequential.Viridis,  # Use a nice color scale
-        text='total',  # Show total scores on top of the bars
-    )
+    score = pd.merge(df_point[['team', 'point']], df_gd[['team','gd']], on='team')
+    score = score.sort_values(by='point', ascending=False)
+    score['rank'] = range(1, len(score)+1)
+    
+    columns = {
+        'rank': 'อันดับ',
+        'team': 'ทีม',
+        'point': 'เกม',
+        'gd': 'คะแนน'
+    }
+    score = score.rename(columns=columns)
 
-    # Update layout for better visuals
-    fig.update_layout(
-        title='Total Scores by Team',  # Add a title
-        xaxis_title='Teams',  # Label x-axis
-        yaxis_title='Total Score',  # Label y-axis
-        showlegend=False,  # Hide legend as it is not necessary
-        template='plotly_white',  # Use a clean template
-    )
-
-    # Update the text position and font
-    fig.update_traces(textposition='outside', textfont_size=12)
-
-    # Display the chart in Streamlit
+    st.markdown('###### ตารางคะแนน')
+    st.dataframe(score[columns.values()], use_container_width=True, hide_index=True)
+    # plot data
+    fig = px.bar(score, x='อันดับ', y='คะแนน', color='ทีม', title='ผลการแข่งขัน')
     st.plotly_chart(fig)
+
 
 def display_table(df):
     """Display the data in a table."""
-    rename = {
+    columns = {
         'match': 'ลำดับที่',
+        'court': 'สนาม',
         'name_a': 'Team A',
         'name_b': 'Team B',
+        'point': 'คะแนน',
         'score_1': 'เกมที่ 1',
         'score_2': 'เกมที่ 2'
     }
-    df = df.rename(columns=rename)
+    df = df.rename(columns=columns)
 
-    st.dataframe(df[rename.values()], use_container_width=True, hide_index=True)
+    st.dataframe(df[columns.values()], use_container_width=True, hide_index=True)
+
+
+def display_knownout_table(df):
+    """Display the data in a table."""
+    columns = {
+        'match': 'ลำดับที่',
+        'court': 'สนาม',
+        'team_a': 'Team A',
+        'team_b': 'Team B',
+        'point': 'คะแนน',
+        'score_1': 'เกมที่ 1',
+        'score_2': 'เกมที่ 2',
+        'score_3': 'เกมที่ 3',
+    }
+    df = df.rename(columns=columns)
+
+    st.dataframe(df[columns.values()], use_container_width=True, hide_index=True)
+    st.image(image='knockedout.png', use_column_width=True)
+
 
 # App title
 st.title("Badminton for Everyday life")
@@ -148,13 +173,16 @@ try:
 
     for i, sheet_name in enumerate(sheet_names):
         with tabs[i]:
-            st.header(f"{sheet_name}")
+            st.header(f"🏸 ตารางการแข่งขัน {sheet_name}")
             try:
                 df = get_sheet_data(API_KEY, SPREADSHEET_ID, sheet_name)
-                df = mapping_team(df, team, sheet_name)
-
-                display_table(df)
-                visualize(df)
+                
+                if sheet_name.startswith("Knockout"):
+                    display_knownout_table(df)
+                else:
+                    df = mapping_team(df, team, sheet_name)
+                    display_table(df)
+                    visualize(df)
             except Exception as e:
                 st.error(f"Error fetching data from '{sheet_name}': {e}")
 

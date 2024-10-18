@@ -110,30 +110,32 @@ def visualize(df):
     score['rank'] = range(1, len(score)+1)
     
     columns = {
-        'rank': 'อันดับ',
-        'team': 'ทีม',
-        'point': 'เกม',
-        'gd': 'คะแนน'
+        'rank': 'RANK',
+        'team': 'TEAM',
+        'point': 'POINT',
+        'gd': 'GD'
     }
     score = score.rename(columns=columns)
 
     st.markdown('###### ตารางคะแนน')
     st.dataframe(score[columns.values()], use_container_width=True, hide_index=True)
     # plot data
-    fig = px.bar(score, x='อันดับ', y='คะแนน', color='ทีม', title='ผลการแข่งขัน')
+    fig = px.bar(score, x='RANK', y='POINT', color='TEAM', title='ผลการแข่งขัน')
     st.plotly_chart(fig)
+
 
 
 def display_table(df):
     """Display the data in a table."""
     columns = {
-        'match': 'ลำดับที่',
-        'court': 'สนาม',
-        'name_a': 'Team A',
-        'name_b': 'Team B',
-        'point': 'คะแนน',
-        'score_1': 'เกมที่ 1',
-        'score_2': 'เกมที่ 2'
+        'match': 'MATCH',
+        'court': 'COURT',
+        'name_a': '1st TEAM',
+        'name_b': '2nd TEAM',
+        'point': 'POINT',
+        'score_1': 'SET 1',
+        'score_2': 'SET 2',
+        'umpire': 'UMPIRE'
     }
     df = df.rename(columns=columns)
 
@@ -143,14 +145,15 @@ def display_table(df):
 def display_knownout_table(df):
     """Display the data in a table."""
     columns = {
-        'match': 'ลำดับที่',
-        'court': 'สนาม',
-        'team_a': 'Team A',
-        'team_b': 'Team B',
-        'point': 'คะแนน',
-        'score_1': 'เกมที่ 1',
-        'score_2': 'เกมที่ 2',
-        'score_3': 'เกมที่ 3',
+        'match': 'MATCH',
+        'court': 'COURT',
+        'team_a': '1st TEAM',
+        'team_b': '2nd TEAM',
+        'point': 'POINT',
+        'score_1': 'SET 1',
+        'score_2': 'SET 2',
+        'score_3': 'SET 3',
+        'umpire': 'UMPIRE'
     }
     df = df.rename(columns=columns)
 

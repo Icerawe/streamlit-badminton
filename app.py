@@ -107,7 +107,7 @@ def visualize(df):
     df_point['point'] = df_point['point_a']+df_point['point_b']
 
     score = pd.merge(df_point[['team', 'point']], df_gd[['team','gd']], on='team')
-    score = score.sort_values(by='point', ascending=False)
+    score = score.sort_values(by=['point','gd'], ascending=False)
     score['rank'] = range(1, len(score)+1)
     
     columns = {

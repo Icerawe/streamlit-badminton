@@ -1,4 +1,4 @@
-import os
+import socket
 from contextlib import contextmanager
 
 import psycopg2
@@ -13,10 +13,13 @@ RANK_INDEX = {r: i for i, r in enumerate(RANKS)}
 @st.cache_resource
 def _get_pool():
     db = st.secrets["database"]
+    hostname = db["host"]
+    ipv4 = socket.getaddrinfo(hostname, None, socket.AF_INET)[0][4][0]
     return psycopg2.pool.ThreadedConnectionPool(
         minconn=1,
         maxconn=10,
-        host=db["host"],
+        host=hostname,
+        hostaddr=ipv4,
         port=db["port"],
         user=db["user"],
         password=db["password"],

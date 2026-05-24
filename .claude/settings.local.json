@@ -14,7 +14,8 @@
       "Bash(tmux capture-pane *)",
       "Bash(streamlit run *)",
       "Bash(echo \"PID=$!\")",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(pip show *)"
     ]
   }
 }

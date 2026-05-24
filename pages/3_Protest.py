@@ -4,7 +4,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 import streamlit as st
 import uuid
-from database import RANKS, RANK_INDEX, get_all_players, get_teams, add_protest, get_protest_detail, get_protest_summary, get_all_pending_protests
+from database import RANKS, RANK_INDEX, get_all_players, get_teams, add_protest, get_protest_detail, get_protest_summary, get_all_pending_protests, upload_protest_image
 from utils.styles import RANK_COLOR, RANK_EMOJI
 
 PROTEST_THRESHOLD = 5
@@ -40,7 +40,9 @@ def _render_pending_protests():
             reason = v.get("reason") or ""
             yt = v.get("youtube_url") or ""
             date = str(v["created_at"])[:10]
+            img = v.get("image_url") or ""
             yt_html = f" <a href='{yt}' target='_blank' style='color:#1976d2;'>🎬 ดูวิดีโอ</a>" if yt else ""
+            img_html = f"<br/><img src='{img}' style='max-width:260px;max-height:180px;border-radius:6px;margin-top:4px;'/>" if img else ""
             st.markdown(
                 f"<div style='padding:6px 14px 6px 28px;border-left:4px solid {color};"
                 f"background:rgba(128,128,128,0.06);margin-bottom:1px;font-size:0.85rem;'>"
@@ -49,6 +51,7 @@ def _render_pending_protests():
                 f"  <br/>"
                 f"  <span style='opacity:0.85;'>{reason}</span>"
                 f"  {yt_html}"
+                f"  {img_html}"
                 f"</div>",
                 unsafe_allow_html=True,
             )
@@ -57,7 +60,7 @@ def _render_pending_protests():
 
 def render():
     st.markdown('<div class="big-title">✊ ประท้วง / Protest</div>', unsafe_allow_html=True)
-    st.markdown('<div class="subtitle">รายงาน/ขอปรับ Rank พร้อมเหตุผลหรือลิงก์ YouTube</div>', unsafe_allow_html=True)
+    st.markdown('<div class="subtitle">รายงาน/ขอปรับ Rank พร้อมเหตุผล หรือแนบลิงก์ YouTube / ภาพรางวัลการแข่งขัน</div>', unsafe_allow_html=True)
 
     all_players = get_all_players()
     teams = get_teams()
@@ -110,9 +113,9 @@ def render():
         st.markdown("#### ส่งเสียงโหวต")
         reason = st.text_area("เหตุผล *", key=f"reason_{pid}",
                               placeholder="อธิบายเหตุผลที่ต้องการปรับ rank...", height=90)
-        yt_url = st.text_input("ลิงก์ YouTube *", key=f"yt_{pid}",
-                               placeholder="https://youtube.com/...")
 
+        yt_url = st.text_input("ลิงก์ YouTube (optional)", key=f"yt_{pid}",
+                               placeholder="https://youtube.com/...")
         yt_valid = False
         if yt_url:
             if not (yt_url.startswith("https://youtube.com") or
@@ -122,22 +125,47 @@ def render():
             else:
                 yt_valid = True
                 st.video(yt_url)
-        else:
-            st.caption("⚠️ กรุณาแนบลิงก์ YouTube ก่อนส่ง")
+
+        uploaded_img = st.file_uploader(
+            "แนบรูปภาพ (optional)", type=["jpg", "jpeg", "png", "webp"],
+            key=f"img_{pid}", help="ขนาดไม่เกิน 5 MB"
+        )
+        if uploaded_img:
+            if uploaded_img.size > 5 * 1024 * 1024:
+                st.error("ไฟล์ใหญ่เกิน 5 MB")
+                uploaded_img = None
+            else:
+                st.image(uploaded_img, width=300)
 
         direction = st.radio("ทิศทาง", ["⬆️ ขึ้น 1 ระดับ", "⬇️ ลง 1 ระดับ"],
                              key=f"dir_{pid}", horizontal=True)
         up_blocked = "⬆️" in direction and RANK_INDEX.get(rank, 0) == len(RANKS) - 1
         down_blocked = "⬇️" in direction and RANK_INDEX.get(rank, 0) == 0
-        disabled = not reason.strip() or not yt_valid or up_blocked or down_blocked
+
+        has_evidence = yt_valid or (uploaded_img is not None)
+        yt_error = bool(yt_url) and not yt_valid
+        disabled = not reason.strip() or not has_evidence or up_blocked or down_blocked or yt_error
 
         if not reason.strip():
             st.caption("⚠️ กรุณาระบุเหตุผลก่อนส่ง")
+        if not has_evidence:
+            st.caption("⚠️ กรุณาแนบลิงก์ YouTube หรือภาพรางวัลการแข่งขันอย่างใดอย่างหนึ่ง")
 
         if st.button("📩 ส่งเสียงโหวต", disabled=disabled, type="primary", key=f"submit_{pid}"):
             dir_val = +1 if "⬆️" in direction else -1
+            img_url = ""
+            if uploaded_img:
+                try:
+                    img_url = upload_protest_image(
+                        uploaded_img.getvalue(),
+                        uploaded_img.name,
+                        uploaded_img.type,
+                    )
+                except Exception as e:
+                    st.error(f"อัปโหลดรูปไม่สำเร็จ: {e}")
+                    st.stop()
             ok, msg = add_protest(pid, st.session_state.session_id, dir_val,
-                                  reason, yt_url if yt_valid else "")
+                                  reason, yt_url if yt_valid else "", img_url)
             if ok:
                 st.session_state.voted_players.add(pid)
                 st.success(f"✅ โหวต{'ขึ้น' if dir_val == 1 else 'ลง'} 1 ระดับให้ {player['name']} แล้ว")
@@ -161,3 +189,5 @@ def render():
                 f"<span style='color:#555;font-size:0.8rem;'>({str(d['created_at'])[:10]})</span>",
                 unsafe_allow_html=True,
             )
+            if d.get("image_url"):
+                st.image(d["image_url"], width=260)

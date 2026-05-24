@@ -1,5 +1,8 @@
 from contextlib import contextmanager
+import uuid as _uuid
 
+import boto3
+from botocore.client import Config
 import psycopg2
 import psycopg2.extras
 import psycopg2.pool
@@ -61,6 +64,7 @@ def init_db():
                 direction INTEGER NOT NULL,
                 reason TEXT,
                 youtube_url TEXT,
+                image_url TEXT,
                 created_at TIMESTAMPTZ DEFAULT NOW()
             )
         """)
@@ -89,6 +93,10 @@ def init_db():
         c.execute("CREATE INDEX IF NOT EXISTS idx_protests_player_id ON protests(player_id)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_protests_session ON protests(player_id, session_id)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_pending_status ON pending_players(status)")
+        # migration: add image_url if not exists
+        c.execute("""
+            ALTER TABLE protests ADD COLUMN IF NOT EXISTS image_url TEXT
+        """)
 
 
 # ── Players ───────────────────────────────────────────────────────────────────
@@ -276,7 +284,34 @@ def reject_pending(pending_id: str):
 
 # ── Protests ──────────────────────────────────────────────────────────────────
 
-def add_protest(player_id: str, session_id: str, direction: int, reason: str = "", youtube_url: str = ""):
+@st.cache_resource
+def _get_s3():
+    s3_cfg = st.secrets["s3"]
+    return boto3.client(
+        "s3",
+        endpoint_url=s3_cfg["endpoint_url"],
+        aws_access_key_id=s3_cfg["access_key"],
+        aws_secret_access_key=s3_cfg["secret_key"],
+        region_name=s3_cfg.get("region", "ap-southeast-1"),
+        config=Config(signature_version="s3v4"),
+    )
+
+
+def upload_protest_image(file_bytes: bytes, filename: str, content_type: str = "image/jpeg") -> str:
+    s3_cfg = st.secrets["s3"]
+    bucket = s3_cfg["bucket"]
+    key = f"protests/{_uuid.uuid4()}_{filename}"
+    _get_s3().put_object(
+        Bucket=bucket,
+        Key=key,
+        Body=file_bytes,
+        ContentType=content_type,
+    )
+    endpoint = s3_cfg["endpoint_url"].rstrip("/")
+    return f"{endpoint}/{bucket}/{key}"
+
+
+def add_protest(player_id: str, session_id: str, direction: int, reason: str = "", youtube_url: str = "", image_url: str = ""):
     with get_conn() as conn:
         c = conn.cursor()
         c.execute(
@@ -286,8 +321,8 @@ def add_protest(player_id: str, session_id: str, direction: int, reason: str = "
         if c.fetchone():
             return False, "คุณโหวตไปแล้ว"
         c.execute(
-            "INSERT INTO protests (player_id, session_id, direction, reason, youtube_url) VALUES (%s,%s,%s,%s,%s)",
-            (player_id, session_id, direction, reason or None, youtube_url or None)
+            "INSERT INTO protests (player_id, session_id, direction, reason, youtube_url, image_url) VALUES (%s,%s,%s,%s,%s,%s)",
+            (player_id, session_id, direction, reason or None, youtube_url or None, image_url or None)
         )
     return True, "บันทึกเสียงโหวตแล้ว"
 
@@ -328,7 +363,7 @@ def get_all_pending_protests():
         c = conn.cursor()
         c.execute("""
             SELECT p.id AS player_id, p.name, p.rank, p.team,
-                   pr.id AS protest_id, pr.direction, pr.reason, pr.youtube_url, pr.created_at
+                   pr.id AS protest_id, pr.direction, pr.reason, pr.youtube_url, pr.image_url, pr.created_at
             FROM protests pr
             JOIN players p ON p.id = pr.player_id
             ORDER BY p.name, pr.created_at DESC

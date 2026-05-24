@@ -28,35 +28,62 @@
 <body>
 
 <h1>🏸 เชียงใหม่แบดมินตัน Ranking System</h1>
-<p>ระบบจัดอันดับและจัดการทีมแบดมินตัน — Chiang Mai Badminton Ranking</p>
+<p>ระบบจัดอันดับและจัดการทีมแบดมินตัน — Chiang Mai Badminton Ranking<br>
+Deploy: <a href="https://cnx-bad-ranking.streamlit.app">cnx-bad-ranking.streamlit.app</a></p>
 
-<h2>วิธีรัน</h2>
+<h2>วิธีรัน (Local)</h2>
 <pre>
 # ใช้ uv (แนะนำ)
 uv run streamlit run app.py
 
 # หรือใช้ pip
-pip install streamlit pandas openpyxl plotly
+pip install -r app_requirement.txt
 streamlit run app.py
 </pre>
+<div class="note">ต้องมีไฟล์ <code>.streamlit/secrets.toml</code> ก่อนรัน (ดูหัวข้อ Secrets)</div>
 
 <h2>โครงสร้างโปรเจกต์</h2>
 <div class="folder">
 <span class="dir">badminton/</span><br>
-├── <span class="file">app.py</span>                    <span class="comment">← Home page (stats + teams)</span><br>
-├── <span class="file">database.py</span>               <span class="comment">← SQLite CRUD (players, protests, teams)</span><br>
+├── <span class="file">app.py</span>                    <span class="comment">← Entry point + sidebar navigation</span><br>
+├── <span class="file">database.py</span>               <span class="comment">← PostgreSQL/Supabase CRUD</span><br>
 ├── <span class="dir">pages/</span><br>
-│   ├── <span class="file">1_📊_Ranking.py</span>       <span class="comment">← ตารางอันดับ</span><br>
-│   ├── <span class="file">2_🔍_Match_Finder.py</span>  <span class="comment">← ค้นหา/จับคู่แข่งขัน</span><br>
-│   ├── <span class="file">3_✊_Protest.py</span>       <span class="comment">← ประท้วง/โหวต</span><br>
-│   └── <span class="file">4_🔧_Admin.py</span>         <span class="comment">← Admin panel</span><br>
+│   ├── <span class="file">0_information.py</span>      <span class="comment">← ข้อมูลทั่วไป / Information</span><br>
+│   ├── <span class="file">1_Ranking.py</span>          <span class="comment">← อันดับ / Ranking</span><br>
+│   ├── <span class="file">2_Match_Finder.py</span>     <span class="comment">← จับคู่แข่งขัน / Match Finder</span><br>
+│   ├── <span class="file">3_Protest.py</span>          <span class="comment">← ประท้วง / Protest</span><br>
+│   └── <span class="file">4_Admin.py</span>            <span class="comment">← ติดต่อสอบถาม / Admin</span><br>
 ├── <span class="dir">utils/</span><br>
 │   ├── <span class="file">styles.py</span>             <span class="comment">← Shared CSS + RANK_COLOR, RANK_EMOJI</span><br>
 │   └── <span class="file">match_rules.py</span>        <span class="comment">← MATCH_CATEGORIES, find_matching_categories()</span><br>
 ├── <span class="dir">data/</span><br>
 │   └── <span class="file">upload_template.xlsx</span>  <span class="comment">← Template สำหรับ upload รายชื่อ</span><br>
+├── <span class="file">export.sql</span>               <span class="comment">← SQL dump สำหรับ migrate DB</span><br>
+├── <span class="file">delete.sql</span>               <span class="comment">← SQL สำหรับ clear data</span><br>
 └── <span class="file">pyproject.toml</span>
 </div>
+
+<h2>Secrets (.streamlit/secrets.toml)</h2>
+<pre>
+ADMIN_PASSWORD = "..."
+
+[database]
+host = "aws-1-ap-southeast-1.pooler.supabase.com"
+port = 5432
+user = "postgres.&lt;project-ref&gt;"
+password = "..."
+dbname = "postgres"
+</pre>
+<div class="note">ใช้ Supabase Session Pooler (ไม่ใช่ direct connection) เพื่อรองรับ Streamlit Cloud ที่ใช้ IPv6</div>
+
+<h2>Database Schema</h2>
+<table>
+  <tr><th>ตาราง</th><th>คอลัมน์หลัก</th></tr>
+  <tr><td><code>players</code></td><td>id (UUID), name, rank, team, created_at, updated_at</td></tr>
+  <tr><td><code>protests</code></td><td>id (UUID), player_id (FK), session_id, direction (+1/-1), reason, youtube_url, created_at</td></tr>
+  <tr><td><code>pending_players</code></td><td>id (UUID), name, rank, team, status, submitted_at</td></tr>
+  <tr><td><code>settings</code></td><td>key, value</td></tr>
+</table>
 
 <h2>Rank System</h2>
 <table>
@@ -72,82 +99,59 @@ streamlit run app.py
 </table>
 
 <h2>Match Categories (ประเภทการแข่งขัน)</h2>
-<p>แต่ละประเภทมีหลาย pair (doubles) โดย rank ของผู้เล่นต้องอยู่ใน range ที่กำหนด</p>
 <table>
   <tr><th>ประเภท</th><th>จับคู่แบบที่ 1</th><th>จับคู่แบบที่ 2</th><th>จับคู่แบบที่ 3</th></tr>
   <tr><td><strong>BG1</strong></td><td>BG – BG</td><td>–</td><td>–</td></tr>
   <tr><td><strong>BG2/NB</strong></td><td>N- – N-</td><td>BG – N</td><td>–</td></tr>
   <tr><td><strong>N</strong></td><td>BG – S</td><td>N- – N+</td><td>N – N</td></tr>
-  <tr><td><strong>N/S</strong></td><td>N- – P-</td><td>N – S</td><td>N+ – N+</td></tr>
+  <tr><td><strong>N/S</strong></td><td>N- – P-</td><td>N – S</td><td>N+ – S</td></tr>
   <tr><td><strong>S</strong></td><td>S – S</td><td>P- – N+</td><td>–</td></tr>
   <tr><td><strong>P</strong></td><td>P- – P+</td><td>P – P</td><td>–</td></tr>
 </table>
-<div class="note">⚠️ ถ้า rank ห่างกันเกิน 3 ระดับ ระบบจะเตือนว่า "ไม่มีประเภทที่เหมาะสม / มือห่างเกินไป"</div>
 
 <h2>หน้าต่างๆ</h2>
 
-<h3>🏠 Home</h3>
+<h3>🏸 ข้อมูลทั่วไป / Information</h3>
 <ul>
-  <li>สถิติรวม: จำนวนผู้เล่น, จำนวนทีม, P+ count</li>
-  <li>กราฟ rank distribution</li>
+  <li>สถิติรวม: จำนวนผู้เล่น, จำนวนทีม</li>
   <li>ภาพรวมทีมพร้อมจำนวนสมาชิก</li>
-  <li>ระดับ Rank ทั้งหมด (rank cards)</li>
-  <li>ตารางประเภทการแข่งขัน (จับคู่แบบที่ 1, 2, 3)</li>
-  <li>บันไดระดับ rank</li>
+  <li>ตารางประเภทการแข่งขัน + บันไดระดับ rank</li>
 </ul>
 
-<h3>📊 ตารางอันดับ</h3>
+<h3>📊 อันดับ / Ranking</h3>
 <ul>
-  <li>แสดงผู้เล่นจัดกลุ่มตาม Rank กรองตามทีม</li>
+  <li>แสดงผู้เล่น 3 การ์ดต่อแถว จัดกลุ่มตาม Rank หรือ Team</li>
+  <li>กรองตามทีม</li>
   <li>🚩 flag เมื่อ net protest votes ≥ 5</li>
 </ul>
 
-<h3>🔍 Match Finder</h3>
+<h3>🔍 จับคู่แข่งขัน / Match Finder</h3>
 <ul>
-  <li>Mode A: เลือก 2 คน → แสดง match categories ที่ใช้ได้</li>
-  <li>Mode B: เลือกทีม → แสดง pairings ที่เป็นไปได้</li>
-  <li>เตือนเมื่อ rank ห่างเกินไป</li>
+  <li>Mode จับคู่: เลือก 2 คน → แสดง match categories ที่ใช้ได้</li>
+  <li>Mode จับคู่ภายในทีม: เลือกทีม → แสดง pairings ทั้งหมดที่เป็นไปได้</li>
 </ul>
 
-<h3>✊ ประท้วง / โหวต</h3>
+<h3>✊ ประท้วง / Protest</h3>
 <ul>
   <li>โหวต +1/-1 ระดับ ได้คนละ 1 ครั้งต่อผู้เล่น (session-based)</li>
-  <li>ใส่เหตุผล (text) หรือ YouTube URL ประกอบได้</li>
+  <li>บังคับใส่เหตุผล + ลิงก์ YouTube ประกอบ</li>
 </ul>
 
-<h3>🔧 Admin</h3>
+<h3>🔧 ติดต่อสอบถาม / Admin</h3>
 <ul>
-  <li>รหัสผ่าน: <code>badmin1234</code></li>
-  <li>เพิ่ม/แก้ไข/ลบผู้เล่น พร้อม team field</li>
+  <li>ล็อกอินด้วย ADMIN_PASSWORD จาก secrets</li>
+  <li>เพิ่ม/แก้ไข/ลบผู้เล่น</li>
   <li>อัปโหลด Excel (format: ทีม / ชื่อเล่น / ระดับ)</li>
+  <li>อนุมัติ/ปฏิเสธ pending players</li>
   <li>จัดการเสียง protest → ปรับ rank หรือล้าง votes</li>
-  <li>Export CSV รายชื่อทั้งหมด</li>
 </ul>
-
-<h2>อัปโหลดรายชื่อ (Excel Upload)</h2>
-<p>ดาวน์โหลด template จาก <strong>Admin → Upload Excel</strong> หรือใช้ไฟล์ <code>data/upload_template.xlsx</code></p>
-<table>
-  <tr><th>ทีม</th><th>ชื่อเล่น</th><th>ระดับ</th></tr>
-  <tr><td>Chiangmai TD</td><td>วิว</td><td>S</td></tr>
-  <tr><td>Blackout</td><td>มาร์ค</td><td>N+</td></tr>
-</table>
-
-<h2>Database Schema</h2>
-<pre>
-players:  id, name (UNIQUE), rank, team, created_at, updated_at
-protests: id, player_id (FK), voter_session, direction (+1/-1),
-          reason, youtube_url, created_at
-</pre>
 
 <h2>Deploy บน Streamlit Community Cloud</h2>
 <ol>
-  <li>Push โค้ดขึ้น GitHub</li>
+  <li>Push โค้ดขึ้น GitHub (branch: <code>master</code>)</li>
   <li>ไปที่ <a href="https://share.streamlit.io">https://share.streamlit.io</a> → เลือก repo → <code>app.py</code> → Deploy</li>
+  <li>ตั้งค่า Secrets ใน App settings → Secrets</li>
 </ol>
-<div class="note">
-  ⚠️ <strong>หมายเหตุ:</strong> SQLite data จะ reset เมื่อ redeploy<br>
-  ถ้าต้องการถาวรให้เปลี่ยนเป็น PostgreSQL หรือ Supabase
-</div>
 
 </body>
 </html>

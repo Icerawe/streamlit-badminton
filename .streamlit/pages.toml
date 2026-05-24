@@ -1,0 +1,19 @@
+[[pages]]
+path = "app.py"
+name = "ข้อมูลทั่วไป / Information"
+
+[[pages]]
+path = "pages/1_Ranking.py"
+name = "อันดับ / Ranking"
+
+[[pages]]
+path = "pages/2_Match_Finder.py"
+name = "จับคู่แข่งขัน / Match Finder"
+
+[[pages]]
+path = "pages/3_Protest.py"
+name = "ประท้วง / Protest"
+
+[[pages]]
+path = "pages/5_Admin.py"
+name = "ติดต่อสอบถาม / Admin"

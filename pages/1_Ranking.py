@@ -30,7 +30,7 @@ def player_card(p, show_rank=True, show_team=True):
 
 
 def render():
-    st.markdown('<div class="big-title">📊 อันดับ / Ranking</div>', unsafe_allow_html=True)
+    st.markdown('<div class="big-title">🔥 อันดับ / Ranking</div>', unsafe_allow_html=True)
     st.markdown('<div class="subtitle">อันดับแบดมินตันเชียงใหม่ — Ranking Board</div>', unsafe_allow_html=True)
 
     col_group, col_team = st.columns([1, 2])

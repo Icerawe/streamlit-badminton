@@ -30,9 +30,9 @@ if "active_tab" not in st.session_state:
 
 TABS = [
     ("🏸", "0_information.py", "ข้อมูลทั่วไป / Information"),
-    ("📊", "1_Ranking.py", "อันดับ / Ranking"),
+    ("🔥", "1_Ranking.py", "อันดับ / Ranking"),
     ("🔍", "2_Match_Finder.py", "จับคู่แข่งขัน / Match Finder"),
-    ("✊", "3_Protest.py", "ประท้วง / Protest"),
+    ("🙋‍♂️", "3_Protest.py", "ประท้วง / Protest"),
     ("🔧", "4_Admin.py", "ติดต่อสอบถาม / Admin"),
 ]
 

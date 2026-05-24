@@ -59,7 +59,7 @@ def _render_pending_protests():
 
 
 def render():
-    st.markdown('<div class="big-title">✊ ประท้วง / Protest</div>', unsafe_allow_html=True)
+    st.markdown('<div class="big-title">🙋‍♂️ ประท้วง / Protest</div>', unsafe_allow_html=True)
     st.markdown('<div class="subtitle">รายงาน/ขอปรับ Rank พร้อมเหตุผล หรือแนบลิงก์ YouTube / ภาพรางวัลการแข่งขัน</div>', unsafe_allow_html=True)
 
     all_players = get_all_players()

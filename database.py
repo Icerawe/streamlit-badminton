@@ -321,3 +321,16 @@ def get_protest_detail(player_id: str):
         c = conn.cursor()
         c.execute("SELECT * FROM protests WHERE player_id=%s ORDER BY created_at DESC", (player_id,))
         return [dict(r) for r in c.fetchall()]
+
+
+def get_all_pending_protests():
+    with get_conn() as conn:
+        c = conn.cursor()
+        c.execute("""
+            SELECT p.id AS player_id, p.name, p.rank, p.team,
+                   pr.id AS protest_id, pr.direction, pr.reason, pr.youtube_url, pr.created_at
+            FROM protests pr
+            JOIN players p ON p.id = pr.player_id
+            ORDER BY p.name, pr.created_at DESC
+        """)
+        return [dict(r) for r in c.fetchall()]

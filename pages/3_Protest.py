@@ -4,10 +4,55 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 import streamlit as st
 import uuid
-from database import RANKS, RANK_INDEX, get_all_players, get_teams, add_protest, get_protest_detail
+from database import RANKS, RANK_INDEX, get_all_players, get_teams, add_protest, get_protest_detail, get_protest_summary, get_all_pending_protests
 from utils.styles import RANK_COLOR, RANK_EMOJI
 
 PROTEST_THRESHOLD = 5
+
+from itertools import groupby
+from operator import itemgetter
+
+
+def _render_pending_protests():
+    pending_rows = get_all_pending_protests()
+    if not pending_rows:
+        return
+    st.markdown("---")
+    st.markdown("#### 📋 รายการประท้วงที่รอ Admin พิจารณา")
+    for player_name, votes in groupby(pending_rows, key=itemgetter("name")):
+        votes = list(votes)
+        first = votes[0]
+        color = RANK_COLOR.get(first["rank"], "#555")
+        st.markdown(
+            f"<div style='display:flex;align-items:center;gap:10px;padding:8px 14px;"
+            f"border-left:4px solid {color};border-radius:6px 6px 0 0;"
+            f"background:rgba(128,128,128,0.12);margin-bottom:1px;'>"
+            f"  <span style='font-weight:700;'>{first['name']}</span>"
+            f"  <span style='background:{color};color:white;font-size:0.72rem;padding:2px 9px;"
+            f"border-radius:12px;font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,0.4);'>"
+            f"    {RANK_EMOJI.get(first['rank'], '')} {first['rank']}</span>"
+            f"  <span style='font-size:0.8rem;opacity:0.6;'>{first.get('team') or '-'}</span>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+        for v in votes:
+            dir_label = "⬆️ +1" if v["direction"] == 1 else "⬇️ -1"
+            reason = v.get("reason") or ""
+            yt = v.get("youtube_url") or ""
+            date = str(v["created_at"])[:10]
+            yt_html = f" <a href='{yt}' target='_blank' style='color:#1976d2;'>🎬 ดูวิดีโอ</a>" if yt else ""
+            st.markdown(
+                f"<div style='padding:6px 14px 6px 28px;border-left:4px solid {color};"
+                f"background:rgba(128,128,128,0.06);margin-bottom:1px;font-size:0.85rem;'>"
+                f"  <span style='font-weight:600;'>{dir_label}</span>"
+                f"  <span style='opacity:0.5;font-size:0.75rem;margin-left:8px;'>{date}</span>"
+                f"  <br/>"
+                f"  <span style='opacity:0.85;'>{reason}</span>"
+                f"  {yt_html}"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
+        st.markdown("<div style='margin-bottom:10px;'></div>", unsafe_allow_html=True)
 
 
 def render():
@@ -33,6 +78,7 @@ def render():
 
     player = options.get(chosen_label)
     if not player:
+        _render_pending_protests()
         return
 
     st.divider()
@@ -98,6 +144,8 @@ def render():
                 st.rerun()
             else:
                 st.warning(msg)
+
+    _render_pending_protests()
 
     # ── Vote history ──────────────────────────────────────────────────────────
     details = get_protest_detail(pid)

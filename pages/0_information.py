@@ -49,19 +49,3 @@ def render():
                 for slot, (lo, hi) in cat["pairs"].items()]
         st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
-    st.markdown("---")
-
-    st.subheader("บันไดระดับ Rank")
-    ladder_html = "<div style='display:flex;flex-direction:column;gap:4px;max-width:300px;'>"
-    for rank in reversed(RANKS):
-        color = RANK_COLOR[rank]
-        emoji = RANK_EMOJI[rank]
-        bar_width = (RANKS.index(rank) + 1) * 12
-        ladder_html += (
-            f"<div style='display:flex;align-items:center;gap:8px;'>"
-            f"<span class='rank-badge' style='background:{color};width:60px;text-align:center;'>{emoji} {rank}</span>"
-            f"<div style='background:{color};height:22px;width:{bar_width}%;border-radius:4px;opacity:0.8;'></div>"
-            f"</div>"
-        )
-    ladder_html += "</div>"
-    st.markdown(ladder_html, unsafe_allow_html=True)

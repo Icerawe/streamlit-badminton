@@ -33,7 +33,7 @@ def filtered_options(all_players, team_filter, rank_filter=None):
 
 
 def render():
-    st.markdown('<div class="big-title">🔍 Match Finder</div>', unsafe_allow_html=True)
+    st.markdown('<div class="big-title">🔍 จับคู่แข่งขัน / Match Finder</div>', unsafe_allow_html=True)
     st.markdown('<div class="subtitle">ค้นหาประเภทการแข่งขันที่เหมาะสม</div>', unsafe_allow_html=True)
 
     all_players = get_all_players()
@@ -98,7 +98,6 @@ def render():
                         unsafe_allow_html=True,
                     )
             else:
-                from database import RANK_INDEX
                 gap = abs(RANK_INDEX.get(pa["rank"], 0) - RANK_INDEX.get(pb["rank"], 0))
                 if gap > 3:
                     st.warning("❌ ไม่มีประเภทแข่งขันที่เหมาะสม — มือห่างกันเกินไป")

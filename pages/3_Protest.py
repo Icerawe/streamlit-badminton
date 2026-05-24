@@ -11,7 +11,7 @@ PROTEST_THRESHOLD = 5
 
 
 def render():
-    st.markdown('<div class="big-title">✊ ประท้วง / โหวต</div>', unsafe_allow_html=True)
+    st.markdown('<div class="big-title">✊ ประท้วง / Protest</div>', unsafe_allow_html=True)
     st.markdown('<div class="subtitle">รายงาน/ขอปรับ Rank พร้อมเหตุผลหรือลิงก์ YouTube</div>', unsafe_allow_html=True)
 
     all_players = get_all_players()
@@ -64,18 +64,20 @@ def render():
         st.markdown("#### ส่งเสียงโหวต")
         reason = st.text_area("เหตุผล *", key=f"reason_{pid}",
                               placeholder="อธิบายเหตุผลที่ต้องการปรับ rank...", height=90)
-        yt_url = st.text_input("ลิงก์ YouTube (ไม่บังคับ)", key=f"yt_{pid}",
+        yt_url = st.text_input("ลิงก์ YouTube *", key=f"yt_{pid}",
                                placeholder="https://youtube.com/...")
 
-        yt_valid = True
+        yt_valid = False
         if yt_url:
             if not (yt_url.startswith("https://youtube.com") or
                     yt_url.startswith("https://www.youtube.com") or
                     yt_url.startswith("https://youtu.be")):
                 st.error("URL ต้องเป็น YouTube เท่านั้น")
-                yt_valid = False
             else:
+                yt_valid = True
                 st.video(yt_url)
+        else:
+            st.caption("⚠️ กรุณาแนบลิงก์ YouTube ก่อนส่ง")
 
         direction = st.radio("ทิศทาง", ["⬆️ ขึ้น 1 ระดับ", "⬇️ ลง 1 ระดับ"],
                              key=f"dir_{pid}", horizontal=True)

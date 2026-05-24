@@ -10,7 +10,7 @@ from utils.match_rules import MATCH_CATEGORIES
 
 
 def render():
-    st.markdown('<div class="big-title">🏸 เชียงใหม่แบดมินตัน</div>', unsafe_allow_html=True)
+    st.markdown('<div class="big-title">🏸 ข้อมูลทั่วไป / Information</div>', unsafe_allow_html=True)
     st.markdown(
         '<div class="subtitle">ระบบจัดอันดับมือแบด — Chiang Mai Badminton Ranking</div>',
         unsafe_allow_html=True,

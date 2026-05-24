@@ -30,7 +30,7 @@ def player_card(p, show_rank=True, show_team=True):
 
 
 def render():
-    st.markdown('<div class="big-title">📊 ตารางอันดับ</div>', unsafe_allow_html=True)
+    st.markdown('<div class="big-title">📊 อันดับ / Ranking</div>', unsafe_allow_html=True)
     st.markdown('<div class="subtitle">อันดับแบดมินตันเชียงใหม่ — Ranking Board</div>', unsafe_allow_html=True)
 
     col_group, col_team = st.columns([1, 2])
@@ -63,8 +63,12 @@ def render():
             emoji = RANK_EMOJI[rank]
             label = f"{emoji} {rank}  —  {len(players)} คน"
             with st.expander(label, expanded=False):
-                for p in players:
-                    player_card(p, show_rank=True, show_team=True)
+                cols_per_row = 3
+                for i in range(0, len(players), cols_per_row):
+                    cols = st.columns(cols_per_row)
+                    for j, p in enumerate(players[i:i+cols_per_row]):
+                        with cols[j]:
+                            player_card(p, show_rank=True, show_team=True)
         if not found_any:
             st.info("ไม่พบผู้เล่น")
     else:
@@ -76,5 +80,9 @@ def render():
             st.info("ไม่พบผู้เล่น")
         for team, players in sorted(grouped.items()):
             with st.expander(f"🏸 {team}  —  {len(players)} คน", expanded=False):
-                for p in players:
-                    player_card(p, show_rank=True, show_team=False)
+                cols_per_row = 3
+                for i in range(0, len(players), cols_per_row):
+                    cols = st.columns(cols_per_row)
+                    for j, p in enumerate(players[i:i+cols_per_row]):
+                        with cols[j]:
+                            player_card(p, show_rank=True, show_team=False)

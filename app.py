@@ -7,7 +7,6 @@ st.set_page_config(
     page_title="🏸 เชียงใหม่แบดมินตัน",
     page_icon="🏸",
     layout="wide",
-    initial_sidebar_state="collapsed",
     menu_items={},
 )
 
@@ -30,11 +29,11 @@ if "active_tab" not in st.session_state:
         st.session_state.active_tab = 0
 
 TABS = [
-    ("🏸", "0_information.py"),
-    ("📊", "1_Ranking.py"),
-    ("🔍", "2_Match_Finder.py"),
-    ("✊", "3_Protest.py"),
-    ("🔧", "4_Admin.py"),
+    ("🏸", "0_information.py", "ข้อมูลทั่วไป / Information"),
+    ("📊", "1_Ranking.py", "อันดับ / Ranking"),
+    ("🔍", "2_Match_Finder.py", "จับคู่แข่งขัน / Match Finder"),
+    ("✊", "3_Protest.py", "ประท้วง / Protest"),
+    ("🔧", "4_Admin.py", "ติดต่อสอบถาม / Admin"),
 ]
 
 
@@ -47,29 +46,19 @@ def load_page(filename):
     return mod
 
 
-# ── Tab bar ───────────────────────────────────────────────────────────────────
-st.markdown("""
-<style>
-  div[data-testid="stHorizontalBlock"] button[kind="secondary"] {
-    border-radius: 8px 8px 0 0;
-    border-bottom: none;
-  }
-</style>
-""", unsafe_allow_html=True)
-
-cols = st.columns(len(TABS))
-for i, (label, _) in enumerate(TABS):
-    with cols[i]:
+# ── Sidebar navigation ───────────────────────────────────────────────────────
+with st.sidebar:
+    st.markdown("## 🏸 เชียงใหม่แบดมินตัน")
+    st.divider()
+    for i, (emoji, _, name) in enumerate(TABS):
         active = st.session_state.active_tab == i
         btn_type = "primary" if active else "secondary"
-        if st.button(label, use_container_width=True, type=btn_type, key=f"tab_{i}"):
+        if st.button(f"{emoji} {name}", use_container_width=True, type=btn_type, key=f"tab_{i}"):
             st.session_state.active_tab = i
             st.query_params["tab"] = str(i)
             st.rerun()
 
-st.divider()
-
 # ── Render only active tab ────────────────────────────────────────────────────
-_, filename = TABS[st.session_state.active_tab]
+_, filename, _ = TABS[st.session_state.active_tab]
 mod = load_page(filename)
 mod.render()

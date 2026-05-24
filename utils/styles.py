@@ -39,17 +39,10 @@ def apply_styles():
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700;900&family=Space+Mono&display=swap');
 
-  section[data-testid="stSidebar"] { display: none; }
-  button[data-testid="collapsedControl"] { display: none; }
-
-  div[data-testid="stHorizontalBlock"] button {
-    padding: 4px 6px !important;
-    font-size: 0.75rem !important;
-    min-height: 0 !important;
-    line-height: 1.2 !important;
-  }
 
   html, body, [class*="css"] { font-family: 'Kanit', sans-serif; }
+
+  [data-testid="stSidebarNav"] { display: none; }
 
   .rank-badge {
     display: inline-block;
@@ -107,15 +100,6 @@ def apply_styles():
     color: white;
   }
 
-  .team-card {
-    background: linear-gradient(135deg, #0d1b2a, #1b263b);
-    border-radius: 12px;
-    padding: 14px 18px;
-    margin: 8px 0;
-    border-left: 4px solid #FFD700;
-    color: white;
-  }
-
   .match-category-card {
     background: linear-gradient(135deg, #0f3460, #16213e);
     border-radius: 10px;
@@ -130,31 +114,6 @@ def apply_styles():
     background: linear-gradient(135deg, #1b3a1b, #0f2a0f);
   }
 
-  .match-category-card.invalid {
-    border-color: #555;
-    opacity: 0.5;
-  }
 
-  .stat-box {
-    background: linear-gradient(135deg, #1a1a2e, #16213e);
-    border-radius: 12px;
-    padding: 20px;
-    text-align: center;
-    color: white;
-    margin: 4px;
-  }
-
-  .stat-number {
-    font-size: 2.2rem;
-    font-weight: 900;
-    background: linear-gradient(90deg, #FFD700, #FF6B35);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  .stat-label {
-    color: #aaa;
-    font-size: 0.9rem;
-  }
 </style>
 """, unsafe_allow_html=True)

@@ -22,7 +22,7 @@ PROTEST_THRESHOLD = 5
 def render():
     ADMIN_PASSWORD = st.secrets["ADMIN_PASSWORD"]
 
-    st.markdown('<div class="big-title">🔧 Admin</div>', unsafe_allow_html=True)
+    st.markdown('<div class="big-title">🔧 ติดต่อสอบถาม / Admin</div>', unsafe_allow_html=True)
     st.markdown('<div class="subtitle">จัดการผู้เล่น Rank และเสียงประท้วง</div>', unsafe_allow_html=True)
 
     # ── Fetch once ───────────────────────────────────────────────────────────

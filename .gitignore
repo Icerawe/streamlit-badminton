@@ -8,4 +8,17 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Secrets
 .streamlit/secrets.toml
+
+# DB migration files (contain schema/data)
+export.sql
+delete.sql
+
+# OS
+.DS_Store
+
+# Logs
+*.txt.log
+logs-*.txt

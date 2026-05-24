@@ -73,14 +73,22 @@ port = 5432
 user = "postgres.&lt;project-ref&gt;"
 password = "..."
 dbname = "postgres"
+
+[s3]
+access_key = "..."
+secret_key = "..."
+endpoint_url = "https://&lt;project-ref&gt;.supabase.co/storage/v1/s3"
+bucket = "protest-images"
+region = "ap-southeast-1"
 </pre>
-<div class="note">ใช้ Supabase Session Pooler (ไม่ใช่ direct connection) เพื่อรองรับ Streamlit Cloud ที่ใช้ IPv6</div>
+<div class="note">ใช้ Supabase Session Pooler (ไม่ใช่ direct connection) เพื่อรองรับ Streamlit Cloud ที่ใช้ IPv6<br>
+S3 credentials ใช้สำหรับ Supabase Storage (อัปโหลดรูปภาพประกอบการประท้วง) — ต้องสร้าง bucket <code>protest-images</code> แบบ Public ก่อน</div>
 
 <h2>Database Schema</h2>
 <table>
   <tr><th>ตาราง</th><th>คอลัมน์หลัก</th></tr>
   <tr><td><code>players</code></td><td>id (UUID), name, rank, team, created_at, updated_at</td></tr>
-  <tr><td><code>protests</code></td><td>id (UUID), player_id (FK), session_id, direction (+1/-1), reason, youtube_url, created_at</td></tr>
+  <tr><td><code>protests</code></td><td>id (UUID), player_id (FK), session_id, direction (+1/-1), reason, youtube_url, image_url, created_at</td></tr>
   <tr><td><code>pending_players</code></td><td>id (UUID), name, rank, team, status, submitted_at</td></tr>
   <tr><td><code>settings</code></td><td>key, value</td></tr>
 </table>
@@ -134,7 +142,8 @@ dbname = "postgres"
 <h3>✊ ประท้วง / Protest</h3>
 <ul>
   <li>โหวต +1/-1 ระดับ ได้คนละ 1 ครั้งต่อผู้เล่น (session-based)</li>
-  <li>บังคับใส่เหตุผล + ลิงก์ YouTube ประกอบ</li>
+  <li>บังคับใส่เหตุผล + หลักฐานอย่างน้อย 1 อย่าง (ลิงก์ YouTube หรือภาพรางวัล)</li>
+  <li>อัปโหลดรูปภาพเก็บใน Supabase Storage (S3-compatible)</li>
 </ul>
 
 <h3>🔧 ติดต่อสอบถาม / Admin</h3>

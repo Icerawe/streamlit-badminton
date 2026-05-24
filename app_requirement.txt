@@ -1,0 +1,113 @@
+subject: ระบบจัดการแบดมินตันเชียงใหม่ (Chiang Mai Badminton Ranking System)
+
+==========================================================
+RANK SYSTEM
+==========================================================
+Ranks (เรียงจากต่ำ → สูง):
+  BG   - Beginner (ระดับเริ่มต้น)
+  N-   - Novice-
+  N    - Novice
+  N+   - Novice+
+  S    - Standard
+  P-   - Pro- (knocker / ผู้ช่วย coach)
+  P    - Pro (coach)
+  P+   - Pro+ (coach / แข่งระดับประเทศ)
+
+==========================================================
+MATCH CATEGORIES (ประเภทการแข่งขัน)
+==========================================================
+แต่ละประเภทมีหลาย pair (doubles) โดย rank ของผู้เล่นต้องอยู่ใน range ที่กำหนด
+
+BG1      : pair1 = [BG, BG]
+BG2/NB   : pair1 = [N-, N-]   pair2 = [BG, N]
+N        : pair1 = [BG, S]    pair2 = [N-, N+]   pair3 = [N, N]
+S        : pair1 = [S, S]     pair2 = [P-, N+]
+P        : pair1 = [P-, P+]   pair2 = [P, P]
+
+กฎ: rank ของผู้เล่นต้องอยู่ระหว่าง min–max ของ slot นั้น
+เตือน: ถ้า rank ห่างกันเกิน 3 ระดับ = "ไม่มีประเภทที่เหมาะสม"
+
+==========================================================
+FEATURES
+==========================================================
+
+1. หน้าหลัก (Home)  ← รวมข้อมูลทั้งหมดไว้ที่นี่
+   - สถิติรวม: จำนวนผู้เล่น, จำนวนทีม, P+ count
+   - กราฟ rank distribution
+   - ภาพรวมทีมพร้อมจำนวนสมาชิก
+   - ระดับ Rank ทั้งหมด (rank cards พร้อมคำอธิบาย)
+   - ตารางประเภทการแข่งขัน (ใช้คำว่า "จับคู่แบบที่" แทน "คู่ที่")
+     ตารางแสดง: จับคู่แบบที่ | Rank ต่ำสุด | Rank สูงสุด  (ไม่แสดง Rank ที่อนุญาต)
+   - บันไดระดับ rank
+
+2. ตารางอันดับ (Ranking Board)
+   - แสดงผู้เล่นจัดกลุ่มตาม rank
+   - กรองตามทีม
+   - แสดง protest flag 🚩 เมื่อ net votes >= 5
+
+3. ค้นหา / จับคู่แข่งขัน (Match Finder)
+   - Mode A: เลือก 2 คน → แสดง match categories ที่ใช้ได้
+   - Mode B: เลือกทีม → แสดง pairings ที่เป็นไปได้
+   - เตือนเมื่อ rank ห่างเกินไป
+
+4. ประท้วง / โหวต (Protest & Vote)
+   - โหวต +1/-1 ระดับ ได้คนละ 1 ครั้งต่อผู้เล่น (session-based)
+   - ใส่เหตุผล (text) หรือ YouTube URL ประกอบได้
+   - แสดงประวัติ votes พร้อมเหตุผล
+
+5. ข้อมูล (Info)
+   - อธิบาย rank แต่ละระดับ
+   - ตาราง match categories
+   - Visual rank ladder
+
+6. Admin
+   - รหัสผ่าน: badmin1234
+   - เพิ่ม/แก้ไข/ลบผู้เล่น (พร้อม team field)
+   - อัปโหลด Excel (format: ทีม / ชื่อเล่น / ระดับ)
+   - จัดการเสียง protest → ปรับ rank หรือล้าง votes
+   - Export CSV รายชื่อทั้งหมด
+
+==========================================================
+FOLDER STRUCTURE
+==========================================================
+badminton/
+├── app.py                    # Home page + st.set_page_config
+├── database.py               # SQLite CRUD (players + protests + teams)
+├── pages/
+│   ├── 1_📊_Ranking.py
+│   ├── 2_🔍_Match_Finder.py
+│   ├── 3_✊_Protest.py
+│   └── 4_🔧_Admin.py
+├── utils/
+│   ├── styles.py             # apply_styles(), RANK_COLOR, RANK_EMOJI
+│   └── match_rules.py        # MATCH_CATEGORIES, find_matching_categories()
+├── data/
+│   └── upload_template.xlsx  # Template สำหรับ upload รายชื่อ
+├── pyproject.toml
+└── README.md
+
+==========================================================
+DATABASE SCHEMA
+==========================================================
+players:
+  id, name (UNIQUE), rank, team, created_at, updated_at
+
+protests:
+  id, player_id (FK), voter_session, direction (+1/-1),
+  reason, youtube_url, created_at
+
+==========================================================
+TECH STACK
+==========================================================
+- Python + Streamlit (multi-page app)
+- SQLite (local) → พิจารณา PostgreSQL/Supabase สำหรับ cloud deploy
+- pandas + openpyxl สำหรับ Excel upload/export
+- Deploy: Streamlit Community Cloud (https://share.streamlit.io)
+
+==========================================================
+KNOWN CONSTRAINTS
+==========================================================
+- SQLite data resets on Streamlit Cloud redeploy
+  → ถ้าต้องการถาวรให้ migrate ไป PostgreSQL หรือ Supabase
+- Admin password เก็บใน code (hardcoded) ยังไม่ได้ใช้ env var
+- Session-based voting (refresh = vote ใหม่ได้)

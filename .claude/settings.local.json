@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c \"import openpyxl; wb = openpyxl.load_workbook\\('sample_data.xlsx'\\); print\\(wb.sheetnames\\)\")",
+      "Bash(python3 -c \"import pandas as pd; df = pd.read_excel\\('sample_data.xlsx', sheet_name=None\\); print\\(list\\(df.keys\\(\\)\\)\\); [print\\(k, df[k].head\\(\\)\\) for k in df]\")",
+      "Bash(python3 *)",
+      "Bash(.venv/bin/python3 -c ' *)",
+      "Bash(~/.pyenv/versions/3.11.3/bin/python3.11 *)",
+      "Bash(git *)",
+      "Bash(uv sync *)",
+      "Bash(uv run *)"
+    ]
+  }
+}

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🏸 เชียงใหม่แบดมินตัน Ranking System</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; max-width: 860px; margin: 40px auto; padding: 0 24px; background: #0f1117; color: #e0e0e0; line-height: 1.7; }
+    h1 { font-size: 2rem; background: linear-gradient(90deg,#FFD700,#FF6B35); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    h2 { color: #FFD700; border-bottom: 1px solid #333; padding-bottom: 6px; margin-top: 2rem; }
+    h3 { color: #FF9800; margin-top: 1.2rem; }
+    code, pre { background: #1a1a2e; border-radius: 6px; font-family: 'Consolas', monospace; }
+    code { padding: 2px 6px; font-size: 0.9em; color: #90CAF9; }
+    pre { padding: 14px; overflow-x: auto; border-left: 3px solid #FF6B35; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th { background: #1a1a2e; color: #FFD700; padding: 8px 14px; text-align: left; border: 1px solid #333; }
+    td { padding: 7px 14px; border: 1px solid #2a2a3e; }
+    tr:nth-child(even) td { background: #12121f; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-weight: 700; font-size: 0.85em; color: #fff; margin: 2px; }
+    .note { background: #1a1a2e; border-left: 4px solid #FF9800; padding: 10px 16px; border-radius: 4px; margin: 1rem 0; }
+    .folder { background: #1a1a2e; padding: 14px 20px; border-radius: 8px; font-family: monospace; font-size: 0.9em; line-height: 1.8; }
+    .folder .dir { color: #FFD700; }
+    .folder .file { color: #90CAF9; }
+    .folder .comment { color: #555; }
+    a { color: #90CAF9; }
+  </style>
+</head>
+<body>
+
+<h1>🏸 เชียงใหม่แบดมินตัน Ranking System</h1>
+<p>ระบบจัดอันดับและจัดการทีมแบดมินตัน — Chiang Mai Badminton Ranking</p>
+
+<h2>วิธีรัน</h2>
+<pre>
+# ใช้ uv (แนะนำ)
+uv run streamlit run app.py
+
+# หรือใช้ pip
+pip install streamlit pandas openpyxl plotly
+streamlit run app.py
+</pre>
+
+<h2>โครงสร้างโปรเจกต์</h2>
+<div class="folder">
+<span class="dir">badminton/</span><br>
+├── <span class="file">app.py</span>                    <span class="comment">← Home page (stats + teams)</span><br>
+├── <span class="file">database.py</span>               <span class="comment">← SQLite CRUD (players, protests, teams)</span><br>
+├── <span class="dir">pages/</span><br>
+│   ├── <span class="file">1_📊_Ranking.py</span>       <span class="comment">← ตารางอันดับ</span><br>
+│   ├── <span class="file">2_🔍_Match_Finder.py</span>  <span class="comment">← ค้นหา/จับคู่แข่งขัน</span><br>
+│   ├── <span class="file">3_✊_Protest.py</span>       <span class="comment">← ประท้วง/โหวต</span><br>
+│   └── <span class="file">4_🔧_Admin.py</span>         <span class="comment">← Admin panel</span><br>
+├── <span class="dir">utils/</span><br>
+│   ├── <span class="file">styles.py</span>             <span class="comment">← Shared CSS + RANK_COLOR, RANK_EMOJI</span><br>
+│   └── <span class="file">match_rules.py</span>        <span class="comment">← MATCH_CATEGORIES, find_matching_categories()</span><br>
+├── <span class="dir">data/</span><br>
+│   └── <span class="file">upload_template.xlsx</span>  <span class="comment">← Template สำหรับ upload รายชื่อ</span><br>
+└── <span class="file">pyproject.toml</span>
+</div>
+
+<h2>Rank System</h2>
+<table>
+  <tr><th>Rank</th><th>Badge</th><th>ระดับ</th><th>คำอธิบาย</th></tr>
+  <tr><td><code>BG</code></td><td><span class="badge" style="background:#9E9E9E">BG</span></td><td>Beginner</td><td>ระดับเริ่มต้น</td></tr>
+  <tr><td><code>N-</code></td><td><span class="badge" style="background:#795548">N-</span></td><td>Novice-</td><td></td></tr>
+  <tr><td><code>N</code></td><td><span class="badge" style="background:#4CAF50">N</span></td><td>Novice</td><td></td></tr>
+  <tr><td><code>N+</code></td><td><span class="badge" style="background:#2196F3">N+</span></td><td>Novice+</td><td></td></tr>
+  <tr><td><code>S</code></td><td><span class="badge" style="background:#FFC107">S</span></td><td>Standard</td><td></td></tr>
+  <tr><td><code>P-</code></td><td><span class="badge" style="background:#FF9800">P-</span></td><td>Pro-</td><td>knocker / ผู้ช่วย coach</td></tr>
+  <tr><td><code>P</code></td><td><span class="badge" style="background:#F44336">P</span></td><td>Pro</td><td>coach</td></tr>
+  <tr><td><code>P+</code></td><td><span class="badge" style="background:#B71C1C">P+</span></td><td>Pro+</td><td>coach / แข่งระดับประเทศ</td></tr>
+</table>
+
+<h2>Match Categories (ประเภทการแข่งขัน)</h2>
+<p>แต่ละประเภทมีหลาย pair (doubles) โดย rank ของผู้เล่นต้องอยู่ใน range ที่กำหนด</p>
+<table>
+  <tr><th>ประเภท</th><th>จับคู่แบบที่ 1</th><th>จับคู่แบบที่ 2</th><th>จับคู่แบบที่ 3</th></tr>
+  <tr><td><strong>BG1</strong></td><td>BG – BG</td><td>–</td><td>–</td></tr>
+  <tr><td><strong>BG2/NB</strong></td><td>N- – N-</td><td>BG – N</td><td>–</td></tr>
+  <tr><td><strong>N</strong></td><td>BG – S</td><td>N- – N+</td><td>N – N</td></tr>
+  <tr><td><strong>N/S</strong></td><td>N- – P-</td><td>N – S</td><td>N+ – N+</td></tr>
+  <tr><td><strong>S</strong></td><td>S – S</td><td>P- – N+</td><td>–</td></tr>
+  <tr><td><strong>P</strong></td><td>P- – P+</td><td>P – P</td><td>–</td></tr>
+</table>
+<div class="note">⚠️ ถ้า rank ห่างกันเกิน 3 ระดับ ระบบจะเตือนว่า "ไม่มีประเภทที่เหมาะสม / มือห่างเกินไป"</div>
+
+<h2>หน้าต่างๆ</h2>
+
+<h3>🏠 Home</h3>
+<ul>
+  <li>สถิติรวม: จำนวนผู้เล่น, จำนวนทีม, P+ count</li>
+  <li>กราฟ rank distribution</li>
+  <li>ภาพรวมทีมพร้อมจำนวนสมาชิก</li>
+  <li>ระดับ Rank ทั้งหมด (rank cards)</li>
+  <li>ตารางประเภทการแข่งขัน (จับคู่แบบที่ 1, 2, 3)</li>
+  <li>บันไดระดับ rank</li>
+</ul>
+
+<h3>📊 ตารางอันดับ</h3>
+<ul>
+  <li>แสดงผู้เล่นจัดกลุ่มตาม Rank กรองตามทีม</li>
+  <li>🚩 flag เมื่อ net protest votes ≥ 5</li>
+</ul>
+
+<h3>🔍 Match Finder</h3>
+<ul>
+  <li>Mode A: เลือก 2 คน → แสดง match categories ที่ใช้ได้</li>
+  <li>Mode B: เลือกทีม → แสดง pairings ที่เป็นไปได้</li>
+  <li>เตือนเมื่อ rank ห่างเกินไป</li>
+</ul>
+
+<h3>✊ ประท้วง / โหวต</h3>
+<ul>
+  <li>โหวต +1/-1 ระดับ ได้คนละ 1 ครั้งต่อผู้เล่น (session-based)</li>
+  <li>ใส่เหตุผล (text) หรือ YouTube URL ประกอบได้</li>
+</ul>
+
+<h3>🔧 Admin</h3>
+<ul>
+  <li>รหัสผ่าน: <code>badmin1234</code></li>
+  <li>เพิ่ม/แก้ไข/ลบผู้เล่น พร้อม team field</li>
+  <li>อัปโหลด Excel (format: ทีม / ชื่อเล่น / ระดับ)</li>
+  <li>จัดการเสียง protest → ปรับ rank หรือล้าง votes</li>
+  <li>Export CSV รายชื่อทั้งหมด</li>
+</ul>
+
+<h2>อัปโหลดรายชื่อ (Excel Upload)</h2>
+<p>ดาวน์โหลด template จาก <strong>Admin → Upload Excel</strong> หรือใช้ไฟล์ <code>data/upload_template.xlsx</code></p>
+<table>
+  <tr><th>ทีม</th><th>ชื่อเล่น</th><th>ระดับ</th></tr>
+  <tr><td>Chiangmai TD</td><td>วิว</td><td>S</td></tr>
+  <tr><td>Blackout</td><td>มาร์ค</td><td>N+</td></tr>
+</table>
+
+<h2>Database Schema</h2>
+<pre>
+players:  id, name (UNIQUE), rank, team, created_at, updated_at
+protests: id, player_id (FK), voter_session, direction (+1/-1),
+          reason, youtube_url, created_at
+</pre>
+
+<h2>Deploy บน Streamlit Community Cloud</h2>
+<ol>
+  <li>Push โค้ดขึ้น GitHub</li>
+  <li>ไปที่ <a href="https://share.streamlit.io">https://share.streamlit.io</a> → เลือก repo → <code>app.py</code> → Deploy</li>
+</ol>
+<div class="note">
+  ⚠️ <strong>หมายเหตุ:</strong> SQLite data จะ reset เมื่อ redeploy<br>
+  ถ้าต้องการถาวรให้เปลี่ยนเป็น PostgreSQL หรือ Supabase
+</div>
+
+</body>
+</html>

@@ -44,7 +44,7 @@ def init_db():
         c = conn.cursor()
         c.execute("""
             CREATE TABLE IF NOT EXISTS players (
-                id SERIAL PRIMARY KEY,
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 name TEXT NOT NULL,
                 rank TEXT NOT NULL,
                 team TEXT,
@@ -55,9 +55,9 @@ def init_db():
         """)
         c.execute("""
             CREATE TABLE IF NOT EXISTS protests (
-                id SERIAL PRIMARY KEY,
-                player_id INTEGER NOT NULL REFERENCES players(id),
-                voter_session TEXT NOT NULL,
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                player_id UUID NOT NULL REFERENCES players(id),
+                session_id TEXT NOT NULL,
                 direction INTEGER NOT NULL,
                 reason TEXT,
                 youtube_url TEXT,
@@ -65,25 +65,8 @@ def init_db():
             )
         """)
         c.execute("""
-            CREATE TABLE IF NOT EXISTS settings (
-                key TEXT PRIMARY KEY,
-                value TEXT NOT NULL
-            )
-        """)
-        c.execute("""
-            INSERT INTO settings (key, value) VALUES ('upload_enabled', '0')
-            ON CONFLICT (key) DO NOTHING
-        """)
-        # indexes
-        c.execute("CREATE INDEX IF NOT EXISTS idx_players_team ON players(team)")
-        c.execute("CREATE INDEX IF NOT EXISTS idx_players_rank ON players(rank)")
-        c.execute("CREATE INDEX IF NOT EXISTS idx_protests_player_id ON protests(player_id)")
-        c.execute("CREATE INDEX IF NOT EXISTS idx_protests_session ON protests(player_id, voter_session)")
-        c.execute("CREATE INDEX IF NOT EXISTS idx_pending_status ON pending_players(status)")
-
-        c.execute("""
             CREATE TABLE IF NOT EXISTS pending_players (
-                id SERIAL PRIMARY KEY,
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 name TEXT NOT NULL,
                 rank TEXT NOT NULL,
                 team TEXT,
@@ -91,6 +74,21 @@ def init_db():
                 status TEXT DEFAULT 'pending'
             )
         """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value TEXT
+            )
+        """)
+        c.execute("""
+            INSERT INTO settings (key, value) VALUES ('upload_enabled', '0')
+            ON CONFLICT (key) DO NOTHING
+        """)
+        c.execute("CREATE INDEX IF NOT EXISTS idx_players_team ON players(team)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_players_rank ON players(rank)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_protests_player_id ON protests(player_id)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_protests_session ON protests(player_id, session_id)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_pending_status ON pending_players(status)")
 
 
 # ── Players ───────────────────────────────────────────────────────────────────
@@ -151,7 +149,7 @@ def add_player(name: str, rank: str, team: str = ""):
         return False, f"มีชื่อ '{name}' อยู่แล้ว"
 
 
-def update_player(player_id: int, name: str = None, rank: str = None, team: str = None):
+def update_player(player_id: str, name: str = None, rank: str = None, team: str = None):
     with get_conn() as conn:
         c = conn.cursor()
         if name is not None:
@@ -163,14 +161,14 @@ def update_player(player_id: int, name: str = None, rank: str = None, team: str 
     _clear_player_cache()
 
 
-def update_player_rank(player_id: int, new_rank: str):
+def update_player_rank(player_id: str, new_rank: str):
     with get_conn() as conn:
         c = conn.cursor()
         c.execute("UPDATE players SET rank=%s, updated_at=NOW() WHERE id=%s", (new_rank, player_id))
     _clear_player_cache()
 
 
-def delete_player(player_id: int):
+def delete_player(player_id: str):
     with get_conn() as conn:
         c = conn.cursor()
         c.execute("DELETE FROM protests WHERE player_id=%s", (player_id,))
@@ -251,7 +249,7 @@ def get_pending_players():
         return [dict(r) for r in c.fetchall()]
 
 
-def approve_pending(pending_id: int):
+def approve_pending(pending_id: str):
     with get_conn() as conn:
         c = conn.cursor()
         c.execute("SELECT * FROM pending_players WHERE id=%s", (pending_id,))
@@ -270,7 +268,7 @@ def approve_pending(pending_id: int):
             return False, f"มีชื่อ '{row['name']}' ในทีม '{row['team']}' อยู่แล้ว"
 
 
-def reject_pending(pending_id: int):
+def reject_pending(pending_id: str):
     with get_conn() as conn:
         c = conn.cursor()
         c.execute("UPDATE pending_players SET status='rejected' WHERE id=%s", (pending_id,))
@@ -278,17 +276,17 @@ def reject_pending(pending_id: int):
 
 # ── Protests ──────────────────────────────────────────────────────────────────
 
-def add_protest(player_id: int, session_id: str, direction: int, reason: str = "", youtube_url: str = ""):
+def add_protest(player_id: str, session_id: str, direction: int, reason: str = "", youtube_url: str = ""):
     with get_conn() as conn:
         c = conn.cursor()
         c.execute(
-            "SELECT id FROM protests WHERE player_id=%s AND voter_session=%s",
+            "SELECT id FROM protests WHERE player_id=%s AND session_id=%s",
             (player_id, session_id)
         )
         if c.fetchone():
             return False, "คุณโหวตไปแล้ว"
         c.execute(
-            "INSERT INTO protests (player_id, voter_session, direction, reason, youtube_url) VALUES (%s,%s,%s,%s,%s)",
+            "INSERT INTO protests (player_id, session_id, direction, reason, youtube_url) VALUES (%s,%s,%s,%s,%s)",
             (player_id, session_id, direction, reason or None, youtube_url or None)
         )
     return True, "บันทึกเสียงโหวตแล้ว"
@@ -312,13 +310,13 @@ def get_protest_summary():
         return [dict(r) for r in c.fetchall()]
 
 
-def clear_protests_for_player(player_id: int):
+def clear_protests_for_player(player_id: str):
     with get_conn() as conn:
         c = conn.cursor()
         c.execute("DELETE FROM protests WHERE player_id=%s", (player_id,))
 
 
-def get_protest_detail(player_id: int):
+def get_protest_detail(player_id: str):
     with get_conn() as conn:
         c = conn.cursor()
         c.execute("SELECT * FROM protests WHERE player_id=%s ORDER BY created_at DESC", (player_id,))

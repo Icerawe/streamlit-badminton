@@ -8,7 +8,7 @@ import psycopg2.extras
 import psycopg2.pool
 import streamlit as st
 
-RANKS = ["BG", "N-", "N", "N+", "S", "P-", "P", "P+"]
+RANKS = ["BG1", "BG2", "N", "N+", "S", "S+/P-", "P", "P+"]
 RANK_INDEX = {r: i for i, r in enumerate(RANKS)}
 
 
@@ -97,6 +97,10 @@ def init_db():
         c.execute("""
             ALTER TABLE protests ADD COLUMN IF NOT EXISTS image_url TEXT
         """)
+        # migration: soft delete protests
+        c.execute("""
+            ALTER TABLE protests ADD COLUMN IF NOT EXISTS cleared_at TIMESTAMPTZ
+        """)
 
 
 # ── Players ───────────────────────────────────────────────────────────────────
@@ -110,9 +114,9 @@ def get_all_players():
                 COALESCE(SUM(CASE WHEN pr.direction=1  THEN 1 ELSE 0 END), 0) AS up_votes,
                 COALESCE(SUM(CASE WHEN pr.direction=-1 THEN 1 ELSE 0 END), 0) AS down_votes
             FROM players p
-            LEFT JOIN protests pr ON p.id = pr.player_id
+            LEFT JOIN protests pr ON p.id = pr.player_id AND pr.cleared_at IS NULL
             GROUP BY p.id
-            ORDER BY p.team NULLS LAST, array_position(ARRAY['BG','N-','N','N+','S','P-','P','P+'], p.rank) DESC, p.name
+            ORDER BY p.team NULLS LAST, array_position(ARRAY['BG1','BG2','N','N+','S','S+/P-','P','P+'], p.rank) DESC, p.name
         """)
         return [dict(r) for r in c.fetchall()]
 
@@ -307,15 +311,16 @@ def upload_protest_image(file_bytes: bytes, filename: str, content_type: str = "
         Body=file_bytes,
         ContentType=content_type,
     )
-    endpoint = s3_cfg["endpoint_url"].rstrip("/")
-    return f"{endpoint}/{bucket}/{key}"
+    # Public URL uses /object/public/ path, not the S3 API endpoint
+    project_url = s3_cfg["endpoint_url"].split("/storage/v1")[0]
+    return f"{project_url}/storage/v1/object/public/{bucket}/{key}"
 
 
 def add_protest(player_id: str, session_id: str, direction: int, reason: str = "", youtube_url: str = "", image_url: str = ""):
     with get_conn() as conn:
         c = conn.cursor()
         c.execute(
-            "SELECT id FROM protests WHERE player_id=%s AND session_id=%s",
+            "SELECT id FROM protests WHERE player_id=%s AND session_id=%s AND cleared_at IS NULL",
             (player_id, session_id)
         )
         if c.fetchone():
@@ -337,7 +342,7 @@ def get_protest_summary():
                    COALESCE(SUM(CASE WHEN pr.direction=-1 THEN 1 ELSE 0 END), 0) AS down_votes,
                    COUNT(pr.id) AS total_votes
             FROM players p
-            LEFT JOIN protests pr ON p.id = pr.player_id
+            LEFT JOIN protests pr ON p.id = pr.player_id AND pr.cleared_at IS NULL
             GROUP BY p.id
             HAVING COUNT(pr.id) > 0
             ORDER BY ABS(COALESCE(SUM(pr.direction), 0)) DESC, COUNT(pr.id) DESC
@@ -348,13 +353,13 @@ def get_protest_summary():
 def clear_protests_for_player(player_id: str):
     with get_conn() as conn:
         c = conn.cursor()
-        c.execute("DELETE FROM protests WHERE player_id=%s", (player_id,))
+        c.execute("UPDATE protests SET cleared_at=NOW() WHERE player_id=%s AND cleared_at IS NULL", (player_id,))
 
 
 def get_protest_detail(player_id: str):
     with get_conn() as conn:
         c = conn.cursor()
-        c.execute("SELECT * FROM protests WHERE player_id=%s ORDER BY created_at DESC", (player_id,))
+        c.execute("SELECT * FROM protests WHERE player_id=%s AND cleared_at IS NULL ORDER BY created_at DESC", (player_id,))
         return [dict(r) for r in c.fetchall()]
 
 

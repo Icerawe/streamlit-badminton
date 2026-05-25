@@ -38,19 +38,19 @@ badminton/
 
 เรียงจากต่ำ → สูง (index 0–7):
 
-| Index | Rank | คำอธิบาย |
-|-------|------|-----------|
-| 0 | BG  | Beginner |
-| 1 | N-  | Novice- |
-| 2 | N   | Novice |
-| 3 | N+  | Novice+ |
-| 4 | S   | Standard |
-| 5 | P-  | Pro- |
-| 6 | P   | Pro |
-| 7 | P+  | Pro+ |
+| Index | Rank   | คำอธิบาย |
+|-------|--------|-----------|
+| 0 | BG1    | Beginner 1 |
+| 1 | BG2    | Beginner 2 |
+| 2 | N      | Novice |
+| 3 | N+     | Novice+ |
+| 4 | S      | Standard |
+| 5 | S+/P-  | Semi Pro- |
+| 6 | P      | Pro |
+| 7 | P+     | Pro+ |
 
 ```python
-RANKS = ["BG", "N-", "N", "N+", "S", "P-", "P", "P+"]
+RANKS = ["BG1", "BG2", "N", "N+", "S", "S+/P-", "P", "P+"]
 RANK_INDEX = {r: i for i, r in enumerate(RANKS)}
 ```
 
@@ -140,7 +140,7 @@ st.session_state.voted_players    # set of player_id
 
 - **Protest threshold:** `PROTEST_THRESHOLD = 5` — net votes ≥ 5 → แสดง 🚩
 - **Vote lock:** 1 คน/1 ผู้เล่น ต่อ session (ตรวจจาก `session_id` ใน DB)
-- **Rank boundary:** ห้ามโหวตขึ้นเกิน P+ หรือลงต่ำกว่า BG
+- **Rank boundary:** ห้ามโหวตขึ้นเกิน P+ หรือลงต่ำกว่า BG1
 - **Match warning:** rank ห่างกันเกิน 3 ระดับ = "ไม่มีประเภทที่เหมาะสม"
 - **Upload flow:** ผู้ใช้ทั่วไป submit → `pending_players` → Admin อนุมัติ/ปฏิเสธ
 

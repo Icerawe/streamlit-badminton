@@ -29,6 +29,7 @@ def filtered_options(all_players, team_filter, rank_filter=None):
         if (team_filter == "ทั้งหมด" or p.get("team") == team_filter)
         and (rank_filter is None or p["rank"] in rank_filter)
     ]
+    players = sorted(players, key=lambda p: (-RANK_INDEX.get(p["rank"], 0), p["name"]))
     return [player_label(p) for p in players], {player_label(p): p for p in players}
 
 
@@ -127,27 +128,71 @@ def render():
             return
 
         selected_team = st.selectbox("เลือกทีม", teams, key="mf_team")
-        team_players = sorted(get_players_by_team(selected_team), key=lambda p: -RANK_INDEX.get(p["rank"], 0))
+        team_players = sorted(get_players_by_team(selected_team), key=lambda p: (-RANK_INDEX.get(p["rank"], 0), p["name"]))
 
-        if len(team_players) < 2:
-            st.warning("ทีมนี้มีผู้เล่นน้อยกว่า 2 คน")
+        if not team_players:
+            st.warning("ทีมนี้ยังไม่มีผู้เล่น")
             return
 
-        results = check_team_categories(team_players)
-        st.markdown("### ประเภทการแข่งขันที่ทีมสามารถลงแข่งได้")
-        if results:
-            for cat, pairings in results.items():
+        label_to_player = {player_label(p): p for p in team_players}
+        selected_label = st.selectbox("เลือกผู้เล่น", [player_label(p) for p in team_players], key="mf_team_player")
+        selected_player = label_to_player[selected_label]
+
+        st.markdown("---")
+        matches_by_cat = {}
+        for other in team_players:
+            if other["id"] == selected_player["id"]:
+                continue
+            for m in find_matching_categories(selected_player["rank"], other["rank"]):
+                cat = m["category"]
+                if cat not in matches_by_cat:
+                    matches_by_cat[cat] = []
+                matches_by_cat[cat].append(other)
+
+        color = RANK_COLOR[selected_player["rank"]]
+        st.markdown(
+            f"<div class='player-card' style='--rank-color:{color};'>"
+            f"  <div><div style='font-size:1rem;font-weight:600;'>{selected_player['name']}</div>"
+            f"  <div style='color:#aaa;font-size:0.8rem;'>{selected_player.get('team','')}</div></div>"
+            f"  <span class='rank-badge' style='background:{color};font-size:0.85rem;'>{RANK_EMOJI[selected_player['rank']]} {selected_player['rank']}</span>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+
+        st.markdown("### ประเภทที่ตรงเงื่อนไข")
+        if matches_by_cat:
+            for cat, partners in matches_by_cat.items():
                 st.markdown(
                     f"<div class='match-category-card valid'>"
-                    f"<b>✅ ประเภท {cat}</b> — {len(pairings)} คู่ที่เป็นไปได้"
+                    f"<b>✅ ประเภท {cat}</b> — {len(partners)} คน"
                     f"</div>",
                     unsafe_allow_html=True,
                 )
-                rows = [
-                    {"ผู้เล่น A": f"{pair['player_a']} ({pair['rank_a']})",
-                     "ผู้เล่น B": f"{pair['player_b']} ({pair['rank_b']})"}
-                    for pair in pairings
-                ]
+                rows = [{"ผู้เล่นคู่": f"{p['name']} ({p['rank']})"}  for p in partners]
                 st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
         else:
-            st.error("❌ ไม่มีประเภทแข่งขันที่เหมาะสมสำหรับทีมนี้")
+            st.info("ไม่มีคู่ที่ตรง condition ในทีม")
+
+        st.markdown("### ประเภทใกล้เคียง (เสียเปรียบ)")
+        nearest_by_cat = {}
+        for other in team_players:
+            if other["id"] == selected_player["id"]:
+                continue
+            for n in find_nearest_categories(selected_player["rank"], other["rank"]):
+                cat = n["category"]
+                if cat not in nearest_by_cat:
+                    nearest_by_cat[cat] = {}
+                nearest_by_cat[cat][other["id"]] = other["name"]
+
+        if nearest_by_cat:
+            for cat, players_map in nearest_by_cat.items():
+                st.markdown(
+                    f"<div class='match-category-card'>"
+                    f"<b>⚠️ ประเภท {cat}</b> — {len(players_map)} คน"
+                    f"</div>",
+                    unsafe_allow_html=True,
+                )
+                rows = [{"ผู้เล่นคู่": name} for name in players_map.values()]
+                st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+        else:
+            st.info("ไม่มีคู่ใกล้เคียงในทีม")

@@ -35,7 +35,7 @@ def render():
 
     col_group, col_team = st.columns([1, 2])
     with col_group:
-        group_by = st.radio("จัดกลุ่มตาม", ["Rank", "Team"], horizontal=True)
+        group_by = st.radio("จัดกลุ่มตาม", ["Rank", "Team"], horizontal=True, default="Team")
     with col_team:
         teams = get_teams()
         selected_team = st.selectbox("กรองตามทีม", ["ทั้งหมด"] + teams)

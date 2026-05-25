@@ -8,7 +8,7 @@ import psycopg2.extras
 import psycopg2.pool
 import streamlit as st
 
-RANKS = ["BG1", "BG2", "N", "N+", "S", "S+/P-", "P", "P+"]
+RANKS = ["BG1", "BG2", "N", "N+", "S", "P-", "P", "P+"]
 RANK_INDEX = {r: i for i, r in enumerate(RANKS)}
 
 
@@ -101,6 +101,9 @@ def init_db():
         c.execute("""
             ALTER TABLE protests ADD COLUMN IF NOT EXISTS cleared_at TIMESTAMPTZ
         """)
+        # migration: rename rank S+/P- → P-
+        c.execute("UPDATE players SET rank='P-' WHERE rank='S+/P-'")
+        c.execute("UPDATE pending_players SET rank='P-' WHERE rank='S+/P-'")
 
 
 # ── Players ───────────────────────────────────────────────────────────────────
@@ -116,7 +119,7 @@ def get_all_players():
             FROM players p
             LEFT JOIN protests pr ON p.id = pr.player_id AND pr.cleared_at IS NULL
             GROUP BY p.id
-            ORDER BY p.team NULLS LAST, array_position(ARRAY['BG1','BG2','N','N+','S','S+/P-','P','P+'], p.rank) DESC, p.name
+            ORDER BY p.team NULLS LAST, array_position(ARRAY['BG1','BG2','N','N+','S','P-','P','P+'], p.rank) DESC, p.name
         """)
         return [dict(r) for r in c.fetchall()]
 
